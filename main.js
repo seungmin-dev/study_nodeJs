@@ -1,6 +1,7 @@
 var http = require('http');
 var fs = require('fs');
 var url = require('url'); //url이라는 module을 사용할 것이다
+var qs = require('querystring');
 
 function templateHTML(title, list, body) {
   var template = `<!doctype html>
@@ -12,6 +13,7 @@ function templateHTML(title, list, body) {
   <body>
     <h1><a href="/">WEB</a></h1>
     ${list}
+    <a href="/create">create</a>
     ${body} 
   </body>
   </html>`;
@@ -31,7 +33,8 @@ function templateList(filelist) {
   return list;
 }
 
-var app = http.createServer(function(request,response){
+var app = http.createServer(function(request,response){ //nodeJS가 웹서버로 접속이 들어올 때마다 호출되는 메소드 createServer
+  //그리고 callback함수 호출 (바로 위에 있는 function)
     var _url = request.url;
     var queryData = url.parse(_url, true).query;
     var pathname = url.parse(_url, true).pathname;
@@ -57,6 +60,36 @@ var app = http.createServer(function(request,response){
           });
         });
       }
+    } else if(pathname == '/create') {
+      fs.readdir('./data', (err, filelist) => {
+        var title = 'Web - create';
+        var list = templateList(filelist);
+        var template = templateHTML(title, list, `
+          <form action="http://localhost:3000/create_process" method="POST">
+            <p><input type="text" name="title" placeholder="title"></p>
+            <p>
+                <textarea name="content" placeholder="content"></textarea>
+            </p>
+            <p><input type="submit"></p> 
+          </form>
+        `);
+        response.writeHead(200);
+        response.end(template);
+      })
+    } else if(pathname == '/create_process') {
+      var body = '';
+      request.on('data', data => { //post방식으로 전송하는 데이터의 양이 많을 때 한번에 대량을 받지 않고,
+        //조금조금씩 받는다. 이 때 data를 인자로 받는 callback함수 호출
+        body = body + data;
+      });
+      request.on('end', () => { //위의 함수에서 더이상 들어올 데이터가 없을 때 호출
+        var post = qs.parse(body);
+        var title = post.title;
+        var content = post.content;
+        console.log(post);
+      });
+      response.writeHead(200);
+      response.end('success');
     } else {
       response.writeHead(404);
       response.end('Not found');
