@@ -75,7 +75,7 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
         `);
         response.writeHead(200);
         response.end(template);
-      })
+      });
     } else if(pathname == '/create_process') {
       var body = '';
       request.on('data', data => { //post방식으로 전송하는 데이터의 양이 많을 때 한번에 대량을 받지 않고,
@@ -87,9 +87,12 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
         var title = post.title;
         var content = post.content;
         console.log(post);
+        fs.writeFile(`data/${title}`, content, 'utf8', (err) => {
+          if(err) throw err; //에러가 떨어졌을 때 처리하는 방법
+          response.writeHead(302, {Location: `/?id=${title}`}); //301은 URL이 영구적으로 바뀌었을 때 리다이렉션
+          response.end('');
+        })
       });
-      response.writeHead(200);
-      response.end('success');
     } else {
       response.writeHead(404);
       response.end('Not found');
