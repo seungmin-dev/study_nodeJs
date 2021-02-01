@@ -3,7 +3,7 @@ var fs = require('fs');
 var url = require('url'); //url이라는 module을 사용할 것이다
 var qs = require('querystring');
 
-function templateHTML(title, list, body) {
+function templateHTML(title, list, body, control) {
   var template = `<!doctype html>
   <html>
   <head>
@@ -13,7 +13,7 @@ function templateHTML(title, list, body) {
   <body>
     <h1><a href="/">WEB</a></h1>
     ${list}
-    <a href="/create">create</a>
+    ${control}
     ${body} 
   </body>
   </html>`;
@@ -45,7 +45,10 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
             var title = 'Welcome!';
             var content = 'Hello, Node.js';
             var list = templateList(filelist);
-            var template = templateHTML(title, list, `<h2>${title}</h2>${content}`);
+            var template = templateHTML(title, list, 
+              `<h2>${title}</h2>${content}`,
+              `<a href="/create">create</a>`
+            );
             response.writeHead(200);
             response.end(template);
           })
@@ -54,7 +57,10 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
           fs.readFile(`data/${queryData.id}`, 'utf8', (err, content) => {
             var title = queryData.id;
             var list = templateList(filelist);
-            var template = templateHTML(title, list, `<h2>${title}</h2>${content}`);
+            var template = templateHTML(title, list, 
+              `<h2>${title}</h2>${content}`,
+              `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`
+            );
             response.writeHead(200);
             response.end(template);
           });
@@ -72,7 +78,7 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
             </p>
             <p><input type="submit"></p> 
           </form>
-        `);
+        `, '');
         response.writeHead(200);
         response.end(template);
       });
@@ -91,6 +97,46 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
           if(err) throw err; //에러가 떨어졌을 때 처리하는 방법
           response.writeHead(302, {Location: `/?id=${title}`}); //301은 URL이 영구적으로 바뀌었을 때 리다이렉션
           response.end('');
+        })
+      });
+    } else if(pathname == '/update') {
+      fs.readdir('./data', (err, filelist) => {
+        fs.readFile(`data/${queryData.id}`, 'utf8', (err, content) => {
+          var title = queryData.id;
+          var list = templateList(filelist);
+          var template = templateHTML(title, list 
+            `
+            <form action="/update_process" method="POST">
+              <input type="hidden" name="id" value="${title}">
+              <p><input type="text" name="title" value="${title}"></p>
+              <p>
+                <textarea name="content" placeholder="content">${content}</textarea>
+              </p>
+              <p><input type="submit"></p> 
+            </form>
+            `,
+            `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`
+          );
+          response.writeHead(200);
+          response.end(template);
+        });
+      });
+    } else if (pathname == '/update_process') {
+      var body = '';
+      request.on('data', data => { 
+        body = body + data;
+      });
+      request.on('end', () => { 
+        var post = qs.parse(body);
+        var id = post.id;
+        var title = post.title;
+        var content = post.content;
+        fs.rename(`data/${id}`, `data/${title}`, (err) => {
+          fs.writeFile(`data/${title}`, content, 'utf8', (err) => {
+            if(err) throw err;
+            response.writeHead(302, {Location: `/?id=${id}`});
+            response.end('');
+          })
         })
       });
     } else {
