@@ -104,7 +104,7 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
         fs.readFile(`data/${queryData.id}`, 'utf8', (err, content) => {
           var title = queryData.id;
           var list = templateList(filelist);
-          var template = templateHTML(title, list 
+          var template = templateHTML(title, list, 
             `
             <form action="/update_process" method="POST">
               <input type="hidden" name="id" value="${title}">
@@ -122,7 +122,6 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
         });
       });
     } else if (pathname == '/update_process') {
-      var body = '';
       request.on('data', data => { 
         body = body + data;
       });
@@ -130,14 +129,15 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
         var post = qs.parse(body);
         var id = post.id;
         var title = post.title;
+        console.log('title:',title);
         var content = post.content;
         fs.rename(`data/${id}`, `data/${title}`, (err) => {
           fs.writeFile(`data/${title}`, content, 'utf8', (err) => {
             if(err) throw err;
-            response.writeHead(302, {Location: `/?id=${id}`});
+            response.writeHead(302, {Location: `/?id=${title}`});
             response.end('');
-          })
-        })
+          });
+        });
       });
     } else {
       response.writeHead(404);
