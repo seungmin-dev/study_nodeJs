@@ -153,6 +153,7 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
         var post = qs.parse(body);
         var id = post.id;
         fs.unlink(`data/${id}`, (err) => {
+          // 존재하는 파일 삭제
           response.writeHead(302, {Location: `/`});
           response.end();
         })
