@@ -2,36 +2,7 @@ var http = require('http');
 var fs = require('fs');
 var url = require('url'); //url이라는 module을 사용할 것이다
 var qs = require('querystring');
-// refactoring
-var template = {
-  html : function(title, list, body, control) {
-    var template = `<!doctype html>
-    <html>
-    <head>
-      <title>WEB1 - ${title}</title>
-      <meta charset="utf-8">
-    </head>
-    <body>
-      <h1><a href="/">WEB</a></h1>
-      ${list}
-      ${control}
-      ${body} 
-    </body>
-    </html>`;
-    return template;
-  },
-  list : function(filelist) {
-    var list = '<ul>';
-    var i = 0;
-    while(i < filelist.length) {
-      list = list + `<li><a href="/?id=${filelist[i]}">${filelist[i]}</a></li>`; 
-      i++;
-    }
-    list = list + '</ul>';
-  
-    return list;
-  }
-}
+var template = require('./lib/template.js');
 
 var app = http.createServer(function(request,response){ //nodeJS가 웹서버로 접속이 들어올 때마다 호출되는 메소드 createServer
   //그리고 callback함수 호출 (바로 위에 있는 function)
@@ -108,7 +79,7 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
       fs.readdir('./data', (err, filelist) => {
         fs.readFile(`data/${queryData.id}`, 'utf8', (err, content) => {
           var title = queryData.id;
-          var list = template,list(filelist);
+          var list = template.list(filelist);
           var html = template.html(title, list, 
             `
             <form action="/update_process" method="POST">
