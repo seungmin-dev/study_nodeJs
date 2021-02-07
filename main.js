@@ -3,6 +3,8 @@ var fs = require('fs');
 var url = require('url'); //url이라는 module을 사용할 것이다
 var qs = require('querystring');
 var template = require('./lib/template.js');
+var path = require('path');
+var sanitezeHtml = require('sanitize-html');
 
 var app = http.createServer(function(request,response){ //nodeJS가 웹서버로 접속이 들어올 때마다 호출되는 메소드 createServer
   //그리고 callback함수 호출 (바로 위에 있는 function)
@@ -25,15 +27,20 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
           })
       } else {
         fs.readdir('./data', (err, filelist) => {
-          fs.readFile(`data/${queryData.id}`, 'utf8', (err, content) => {
+          var filteredId = path.parse(queryData.id).base;
+          fs.readFile(`data/${filteredId}`, 'utf8', (err, content) => {
             var title = queryData.id;
+            var sanitizedTitle = sanitizeHtml(title);
+            var sanitizedDescription = sanitizeHtml(description, {
+              allowedTags:['h1']
+            });
             var list = template.list(filelist);
-            var html = template.html(title, list, 
-              `<h2>${title}</h2>${content}`,
+            var html = template.html(sanitizedTitle, list, 
+              `<h2>${sanitizedTitle}</h2>${sanitizedDescription}`,
               `<a href="/create">create</a> 
-              <a href="/update?id=${title}">update</a> 
+              <a href="/update?id=${sanitizedTitle}">update</a> 
               <form action="delete_process" method="post">
-                <input type="hidden" name="id" value="${title}">
+                <input type="hidden" name="id" value="${sanitizedTitle}">
                 <input type="submit" value="delete">
               </form>`
             );
@@ -77,7 +84,8 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
       });
     } else if(pathname == '/update') {
       fs.readdir('./data', (err, filelist) => {
-        fs.readFile(`data/${queryData.id}`, 'utf8', (err, content) => {
+        var filteredId = path.parse(queryData.id).base;
+        fs.readFile(`data/${filteredId}`, 'utf8', (err, content) => {
           var title = queryData.id;
           var list = template.list(filelist);
           var html = template.html(title, list, 
@@ -123,7 +131,8 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
       request.on('end', () => { 
         var post = qs.parse(body);
         var id = post.id;
-        fs.unlink(`data/${id}`, (err) => {
+        var filteredId = path.parse(id).base;
+        fs.unlink(`data/${filteredId}`, (err) => {
           // 존재하는 파일 삭제
           response.writeHead(302, {Location: `/`});
           response.end();
@@ -135,3 +144,7 @@ var app = http.createServer(function(request,response){ //nodeJS가 웹서버로
     }
 });
 app.listen(3000);
+
+// 보안
+// 입력 보안 - filteredId 사용
+// 출력 보안 - sanitize-html (npm package) 사용
